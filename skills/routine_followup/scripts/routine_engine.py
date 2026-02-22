@@ -10,21 +10,46 @@ DB_PATH = os.path.join(BASE_DIR, '../data/registry.json')
 LOG_PATH = os.path.join(BASE_DIR, '../data/completion.log')
 
 def load_db():
+    """
+    Loads the routine database from a JSON file.
+
+    Returns:
+        dict: The database of routines.
+    """
     if os.path.exists(DB_PATH):
         with open(DB_PATH, 'r') as f: return json.load(f)
     return {}
 
 def save_db(db):
+    """
+    Saves the routine database to a JSON file.
+
+    Args:
+        db (dict): The database of routines to be saved.
+    """
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with open(DB_PATH, 'w') as f: json.dump(db, f, indent=4)
 
 def log_completion(name):
+    """
+    Logs the completion of a routine to a log file with a timestamp.
+
+    Args:
+        name (str): The name of the routine that was completed.
+    """
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_line = f"[{now_str}] Rutine fuldført: {name}\n"
     with open(LOG_PATH, 'a') as f: f.write(log_line)
 
 def update_crontab(name, run_dt):
+    """
+    Updates the system crontab with a new schedule for a specific routine.
+
+    Args:
+        name (str): The name of the routine to update in the crontab.
+        run_dt (datetime): The datetime object representing the next scheduled run.
+    """
     # Format i crontab: minut time dag måned ugedag
     cron_time = f"{run_dt.minute} {run_dt.hour} {run_dt.day} {run_dt.month} *"
     script_path = os.path.abspath(__file__)
@@ -51,12 +76,34 @@ def update_crontab(name, run_dt):
     proc.communicate(new_cron.encode('utf-8'))
 
 def calculate_next_run(time_str, days_ahead):
+    """
+    Calculates the next run datetime based on a time string and a number of days ahead.
+
+    Args:
+        time_str (str): The time of day in "HH:MM" format.
+        days_ahead (int): The number of days from now to schedule the run.
+
+    Returns:
+        datetime: The calculated next run datetime object.
+    """
     now = datetime.now()
     t = datetime.strptime(time_str, "%H:%M").time()
     next_dt = datetime.combine(now.date() + timedelta(days=days_ahead), t)
     return next_dt
 
 def add_routine(name, primary, deadline, time_of_day):
+    """
+    Adds a new routine to the database and schedules its initial run in crontab.
+
+    Args:
+        name (str): The unique name for the routine.
+        primary (int): The primary period in days.
+        deadline (int): The deadline period in days.
+        time_of_day (str): The preferred time of day ("HH:MM").
+
+    Returns:
+        str: A message indicating the routine has been created and scheduled.
+    """
     db = load_db()
     next_dt = calculate_next_run(time_of_day, primary)
     db[name] = {
@@ -69,6 +116,12 @@ def add_routine(name, primary, deadline, time_of_day):
     return f"Rutine '{name}' oprettet. Cron sat til {next_dt.strftime('%Y-%m-%d %H:%M')}."
 
 def trigger_routine(name):
+    """
+    Triggers a routine, switching its schedule to the deadline period.
+
+    Args:
+        name (str): The name of the routine to trigger.
+    """
     db = load_db()
     if name not in db:
         print(f"Fejl: Rutine '{name}' findes ikke i databasen.")
@@ -84,6 +137,15 @@ def trigger_routine(name):
     print(f"SYSTEM PROMPT: Rutinen '{name}' er forfalden. Spørg brugeren om den er udført. Hvis de bekræfter, kør 'complete_routine' værktøjet for '{name}'. Ellers vil systemet rykke dem igen automatisk d. {next_dt.strftime('%Y-%m-%d %H:%M')}.")
 
 def complete_routine(name):
+    """
+    Marks a routine as completed and resets its schedule to the primary period.
+
+    Args:
+        name (str): The name of the routine to complete.
+
+    Returns:
+        str: A message indicating the result of the operation.
+    """
     db = load_db()
     if name not in db: return "Fejl: Rutine findes ikke."
     data = db[name]
@@ -96,6 +158,12 @@ def complete_routine(name):
     return f"Succes: '{name}' er markeret som fuldført og logget i completion.log. Næste cron-kørsel er sat til {next_dt.strftime('%Y-%m-%d %H:%M')} (Primær periode)."
 
 def check_routines():
+    """
+    Generates a report on the status of all routines in the database compared to crontab.
+
+    Returns:
+        str: A status report for all routines.
+    """
     db = load_db()
     if not db:
         return "Ingen rutiner fundet i databasen."
