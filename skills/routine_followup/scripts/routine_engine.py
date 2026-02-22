@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+import shlex
 import subprocess
 from datetime import datetime, timedelta
 
@@ -31,7 +32,8 @@ def update_crontab(name, run_dt):
     python_exec = sys.executable
 
     # Kommandoen cron skal køre
-    cmd = f"{python_exec} {script_path} --action trigger --name '{name}'"
+    # Brug shlex.quote for at undgå shell injection
+    cmd = f"{shlex.quote(python_exec)} {shlex.quote(script_path)} --action trigger --name {shlex.quote(name)}"
     marker = f"# OPENCLAW_ROUTINE:{name}"
     new_job = f"{cron_time} {cmd} {marker}"
 
@@ -42,7 +44,8 @@ def update_crontab(name, run_dt):
         current_cron = ""
 
     # Fjern det gamle job for denne rutine (hvis det eksisterer)
-    lines = [line for line in current_cron.splitlines() if marker not in line and line.strip() != ""]
+    # Vi matcher præcis på markøren til sidst i linjen
+    lines = [line for line in current_cron.splitlines() if not line.endswith(marker) and line.strip() != ""]
     lines.append(new_job)
     new_cron = "\n".join(lines) + "\n"
 
@@ -57,6 +60,9 @@ def calculate_next_run(time_str, days_ahead):
     return next_dt
 
 def add_routine(name, primary, deadline, time_of_day):
+    if '\n' in name or '%' in name:
+        return "Fejl: Rutinenavn må ikke indeholde linjeskift eller procent-tegn."
+
     db = load_db()
     next_dt = calculate_next_run(time_of_day, primary)
     db[name] = {
@@ -113,16 +119,18 @@ def check_routines():
 
     for name, data in db.items():
         marker = f"# OPENCLAW_ROUTINE:{name}"
-        if marker in current_cron:
-            # Find linjen med markøren for at se tidspunktet
-            for line in current_cron.splitlines():
-                if marker in line:
-                    parts = line.split()
-                    # Cron format: m h dom mon dow command
-                    cron_schedule = f"{parts[1]}:{parts[0]} d. {parts[2]}/{parts[3]}"
-                    report.append(f"[OK]   {name:<20} (Planlagt: {cron_schedule})")
-                    break
-        else:
+        found = False
+        # Find linjen med markøren for at se tidspunktet
+        for line in current_cron.splitlines():
+            if line.endswith(marker):
+                parts = line.split()
+                # Cron format: m h dom mon dow command
+                cron_schedule = f"{parts[1]}:{parts[0]} d. {parts[2]}/{parts[3]}"
+                report.append(f"[OK]   {name:<20} (Planlagt: {cron_schedule})")
+                found = True
+                break
+
+        if not found:
             report.append(f"[FEJL] {name:<20} (Mangler i crontab!)")
 
     return "\n".join(report)
