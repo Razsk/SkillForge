@@ -6,8 +6,10 @@ import subprocess
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, '../data/registry.json')
-LOG_PATH = os.path.join(BASE_DIR, '../data/completion.log')
+DEFAULT_DATA_DIR = os.path.join(BASE_DIR, '../data')
+
+DB_PATH = os.getenv('ROUTINE_DB_PATH', os.path.join(DEFAULT_DATA_DIR, 'registry.json'))
+LOG_PATH = os.getenv('ROUTINE_LOG_PATH', os.path.join(DEFAULT_DATA_DIR, 'completion.log'))
 
 def load_db():
     if os.path.exists(DB_PATH):
