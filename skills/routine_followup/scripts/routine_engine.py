@@ -50,7 +50,7 @@ def update_crontab(name, run_dt):
     proc = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE)
     proc.communicate(new_cron.encode('utf-8'))
 
-def calculate_next_run(time_str, days_ahead):
+def calculate_next_run(time_str: str, days_ahead: int) -> datetime:
     now = datetime.now()
     t = datetime.strptime(time_str, "%H:%M").time()
     next_dt = datetime.combine(now.date() + timedelta(days=days_ahead), t)
