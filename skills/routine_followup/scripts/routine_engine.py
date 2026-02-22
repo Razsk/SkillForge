@@ -3,6 +3,8 @@ import json
 import os
 import sys
 import subprocess
+import re
+import shlex
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,6 +20,13 @@ def save_db(db):
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with open(DB_PATH, 'w') as f: json.dump(db, f, indent=4)
 
+def validate_routine_name(name):
+    # Only allow alphanumeric, spaces, underscores, and hyphens.
+    # This prevents prompt injection (by disallowing complex instructions)
+    # and command injection (by disallowing shell metacharacters).
+    if not re.match(r'^[\w -]+$', name):
+        raise ValueError(f"Routine name '{name}' contains invalid characters. Only alphanumeric, spaces, underscores, and hyphens are allowed.")
+
 def log_completion(name):
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -31,7 +40,7 @@ def update_crontab(name, run_dt):
     python_exec = sys.executable
 
     # Kommandoen cron skal køre
-    cmd = f"{python_exec} {script_path} --action trigger --name '{name}'"
+    cmd = f"{python_exec} {script_path} --action trigger --name {shlex.quote(name)}"
     marker = f"# OPENCLAW_ROUTINE:{name}"
     new_job = f"{cron_time} {cmd} {marker}"
 
@@ -57,6 +66,7 @@ def calculate_next_run(time_str, days_ahead):
     return next_dt
 
 def add_routine(name, primary, deadline, time_of_day):
+    validate_routine_name(name)
     db = load_db()
     next_dt = calculate_next_run(time_of_day, primary)
     db[name] = {
@@ -69,6 +79,7 @@ def add_routine(name, primary, deadline, time_of_day):
     return f"Rutine '{name}' oprettet. Cron sat til {next_dt.strftime('%Y-%m-%d %H:%M')}."
 
 def trigger_routine(name):
+    validate_routine_name(name)
     db = load_db()
     if name not in db:
         print(f"Fejl: Rutine '{name}' findes ikke i databasen.")
@@ -84,6 +95,7 @@ def trigger_routine(name):
     print(f"SYSTEM PROMPT: Rutinen '{name}' er forfalden. Spørg brugeren om den er udført. Hvis de bekræfter, kør 'complete_routine' værktøjet for '{name}'. Ellers vil systemet rykke dem igen automatisk d. {next_dt.strftime('%Y-%m-%d %H:%M')}.")
 
 def complete_routine(name):
+    validate_routine_name(name)
     db = load_db()
     if name not in db: return "Fejl: Rutine findes ikke."
     data = db[name]
