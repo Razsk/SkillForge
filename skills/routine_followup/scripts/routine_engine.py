@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, '../data/registry.json')
 LOG_PATH = os.path.join(BASE_DIR, '../data/completion.log')
+ROUTINE_MARKER_TEMPLATE = "# OPENCLAW_ROUTINE:{}"
 
 def load_db():
     """
@@ -63,6 +64,8 @@ def update_crontab(name, run_dt):
     python_exec = sys.executable
 
     # Kommandoen cron skal køre
+    cmd = f"{python_exec} {script_path} --action trigger --name '{name}'"
+    marker = ROUTINE_MARKER_TEMPLATE.format(name)
     # Brug shlex.quote for at undgå shell injection
     cmd = f"{shlex.quote(python_exec)} {shlex.quote(script_path)} --action trigger --name {shlex.quote(name)}"
     marker = f"# OPENCLAW_ROUTINE:{name}"
