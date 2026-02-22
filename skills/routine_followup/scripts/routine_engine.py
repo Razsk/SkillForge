@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, '../data/registry.json')
 LOG_PATH = os.path.join(BASE_DIR, '../data/completion.log')
+ROUTINE_MARKER_TEMPLATE = "# OPENCLAW_ROUTINE:{}"
 
 def load_db():
     if os.path.exists(DB_PATH):
@@ -32,7 +33,7 @@ def update_crontab(name, run_dt):
 
     # Kommandoen cron skal køre
     cmd = f"{python_exec} {script_path} --action trigger --name '{name}'"
-    marker = f"# OPENCLAW_ROUTINE:{name}"
+    marker = ROUTINE_MARKER_TEMPLATE.format(name)
     new_job = f"{cron_time} {cmd} {marker}"
 
     # Hent nuværende crontab (ignorer fejl hvis den er tom)
@@ -112,7 +113,7 @@ def check_routines():
     report.append("-" * 40)
 
     for name, data in db.items():
-        marker = f"# OPENCLAW_ROUTINE:{name}"
+        marker = ROUTINE_MARKER_TEMPLATE.format(name)
         if marker in current_cron:
             # Find linjen med markøren for at se tidspunktet
             for line in current_cron.splitlines():
