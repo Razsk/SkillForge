@@ -19,9 +19,11 @@ def save_db(db):
     with open(DB_PATH, 'w') as f: json.dump(db, f, indent=4)
 
 def log_completion(name):
+    # Sanitize name to prevent log injection
+    safe_name = name.replace('\n', ' ').replace('\r', '')
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_line = f"[{now_str}] Rutine fuldført: {name}\n"
+    log_line = f"[{now_str}] Rutine fuldført: {safe_name}\n"
     with open(LOG_PATH, 'a') as f: f.write(log_line)
 
 def update_crontab(name, run_dt):
