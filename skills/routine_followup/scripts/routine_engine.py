@@ -43,6 +43,12 @@ def log_completion(name):
     log_line = f"[{now_str}] Rutine fuldført: {name}\n"
     with open(LOG_PATH, 'a') as f: f.write(log_line)
 
+def get_crontab():
+    try:
+        return subprocess.check_output(['crontab', '-l'], stderr=subprocess.DEVNULL).decode('utf-8')
+    except subprocess.CalledProcessError:
+        return ""
+
 def update_crontab(name, run_dt):
     """
     Updates the system crontab with a new schedule for a specific routine.
@@ -63,10 +69,7 @@ def update_crontab(name, run_dt):
     new_job = f"{cron_time} {cmd} {marker}"
 
     # Hent nuværende crontab (ignorer fejl hvis den er tom)
-    try:
-        current_cron = subprocess.check_output(['crontab', '-l'], stderr=subprocess.DEVNULL).decode('utf-8')
-    except subprocess.CalledProcessError:
-        current_cron = ""
+    current_cron = get_crontab()
 
     # Fjern det gamle job for denne rutine (hvis det eksisterer)
     # Vi matcher præcis på markøren til sidst i linjen
@@ -175,9 +178,7 @@ def check_routines():
         return "Ingen rutiner fundet i databasen."
 
     try:
-        current_cron = subprocess.check_output(['crontab', '-l'], stderr=subprocess.DEVNULL).decode('utf-8')
-    except subprocess.CalledProcessError:
-        current_cron = ""
+        current_cron = get_crontab()
     except FileNotFoundError:
         return "Fejl: 'crontab' kommandoen findes ikke i miljøet."
 
