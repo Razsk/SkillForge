@@ -27,3 +27,17 @@ python3 scripts/routine_engine.py --action complete --name "<rutinens_navn>"
 ```
 
 *Bemærk: `<rutinens_navn>` skal matche præcis det navn, der blev givet i system-prompten.*
+
+### add_routine
+Brug dette værktøj, når brugeren beder om at få oprettet en ny rutine.
+
+**Parametre:**
+- `name`: Navnet på rutinen (string).
+- `primary`: Hvor ofte den skal udføres (int, antal dage).
+- `deadline`: Hvor hurtigt systemet skal rykke, hvis den overskrides (int, antal dage).
+- `time`: (Valgfri) Tidspunkt på dagen (string, format "HH:MM", default "07:00").
+
+**Kommando der skal udføres:**
+```bash
+python3 scripts/routine_engine.py --action add --name "<name>" --primary <primary> --deadline <deadline> --time "<time>"
+```
