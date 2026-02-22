@@ -111,17 +111,22 @@ def check_routines():
     report.append(f"Status rapport for {len(db)} rutiner:")
     report.append("-" * 40)
 
+    cron_lines = current_cron.splitlines()
+    marker_to_line = {}
+    for line in cron_lines:
+        if "# OPENCLAW_ROUTINE:" in line:
+            parts = line.split("# OPENCLAW_ROUTINE:")
+            if len(parts) > 1:
+                routine_name = parts[1].strip()
+                marker_to_line[routine_name] = line
+
     for name, data in db.items():
-        marker = f"# OPENCLAW_ROUTINE:{name}"
-        if marker in current_cron:
-            # Find linjen med markøren for at se tidspunktet
-            for line in current_cron.splitlines():
-                if marker in line:
-                    parts = line.split()
-                    # Cron format: m h dom mon dow command
-                    cron_schedule = f"{parts[1]}:{parts[0]} d. {parts[2]}/{parts[3]}"
-                    report.append(f"[OK]   {name:<20} (Planlagt: {cron_schedule})")
-                    break
+        if name in marker_to_line:
+            line = marker_to_line[name]
+            parts = line.split()
+            # Cron format: m h dom mon dow command
+            cron_schedule = f"{parts[1]}:{parts[0]} d. {parts[2]}/{parts[3]}"
+            report.append(f"[OK]   {name:<20} (Planlagt: {cron_schedule})")
         else:
             report.append(f"[FEJL] {name:<20} (Mangler i crontab!)")
 
