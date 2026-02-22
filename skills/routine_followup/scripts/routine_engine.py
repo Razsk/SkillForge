@@ -95,9 +95,41 @@ def complete_routine(name):
 
     return f"Succes: '{name}' er markeret som fuldført og logget i completion.log. Næste cron-kørsel er sat til {next_dt.strftime('%Y-%m-%d %H:%M')} (Primær periode)."
 
+def check_routines():
+    db = load_db()
+    if not db:
+        return "Ingen rutiner fundet i databasen."
+
+    try:
+        current_cron = subprocess.check_output(['crontab', '-l'], stderr=subprocess.DEVNULL).decode('utf-8')
+    except subprocess.CalledProcessError:
+        current_cron = ""
+    except FileNotFoundError:
+        return "Fejl: 'crontab' kommandoen findes ikke i miljøet."
+
+    report = []
+    report.append(f"Status rapport for {len(db)} rutiner:")
+    report.append("-" * 40)
+
+    for name, data in db.items():
+        marker = f"# OPENCLAW_ROUTINE:{name}"
+        if marker in current_cron:
+            # Find linjen med markøren for at se tidspunktet
+            for line in current_cron.splitlines():
+                if marker in line:
+                    parts = line.split()
+                    # Cron format: m h dom mon dow command
+                    cron_schedule = f"{parts[1]}:{parts[0]} d. {parts[2]}/{parts[3]}"
+                    report.append(f"[OK]   {name:<20} (Planlagt: {cron_schedule})")
+                    break
+        else:
+            report.append(f"[FEJL] {name:<20} (Mangler i crontab!)")
+
+    return "\n".join(report)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--action", choices=["add", "trigger", "complete"], required=True)
+    parser.add_argument("--action", choices=["add", "trigger", "complete", "check"], required=True)
     parser.add_argument("--name", required=True)
     parser.add_argument("--primary", type=int, help="Primær periode i dage")
     parser.add_argument("--deadline", type=int, help="Frist periode i dage")
@@ -114,3 +146,5 @@ if __name__ == "__main__":
         trigger_routine(args.name)
     elif args.action == "complete":
         print(complete_routine(args.name))
+    elif args.action == "check":
+        print(check_routines())
