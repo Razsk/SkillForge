@@ -41,3 +41,14 @@ Brug dette værktøj, når brugeren beder om at få oprettet en ny rutine.
 ```bash
 python3 scripts/routine_engine.py --action add --name "<name>" --primary <primary> --deadline <deadline> --time "<time>"
 ```
+
+### check_routines
+Brug dette værktøj til at diagnosticere og verificere, at alle rutiner er korrekt planlagt i cron.
+
+**Parametre:**
+Ingen.
+
+**Kommando der skal udføres:**
+```bash
+python3 scripts/routine_engine.py --action check --name "report"
+```
