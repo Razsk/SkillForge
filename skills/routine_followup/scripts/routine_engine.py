@@ -47,8 +47,7 @@ def update_crontab(name, run_dt):
     new_cron = "\n".join(lines) + "\n"
 
     # Skriv den nye crontab tilbage
-    proc = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE)
-    proc.communicate(new_cron.encode('utf-8'))
+    subprocess.run(['crontab', '-'], input=new_cron.encode('utf-8'), check=True)
 
 def calculate_next_run(time_str, days_ahead):
     now = datetime.now()
